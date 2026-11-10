@@ -5,13 +5,14 @@ from torch.utils.data import Dataset, DataLoader
 
 class MRIDataset(Dataset):
 
-    def __init__(self, x_complex, x_ri, y):
+    def __init__(self, x_complex, x_ri, y, scale):
 
         self.x_complex = x_complex
         self.x_ri = x_ri
         self.y = y
+        self.scale = scale
 
-        assert len(x_complex) == len(x_ri) == len(y)
+        assert len(x_complex) == len(x_ri) == len(y) == len(scale)
 
     def __len__(self):
         return len(self.y)
@@ -21,7 +22,8 @@ class MRIDataset(Dataset):
         return {
             "x_complex": self.x_complex[index],
             "x_ri": self.x_ri[index],
-            "y": self.y[index]
+            "y": self.y[index],
+            "scale": self.scale[index]
         }
 
 

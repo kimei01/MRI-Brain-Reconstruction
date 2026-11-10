@@ -8,3 +8,4 @@ datasets/multicoil_train/*
 reports/
 splits/
 dataset/*
+__pycache__/

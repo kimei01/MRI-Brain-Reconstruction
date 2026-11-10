@@ -1,6 +1,4 @@
-
 import torch
-
 
 def create_representations(x):
     if not torch.is_complex(x):
@@ -15,5 +13,9 @@ def create_representations(x):
 
     # Stack real and imaginary components
     x_ri = torch.stack((x_real, x_imag), dim=2)
+
+    # Merge coil and real/imaginary dimensions
+    B, C, _, H, W = x_ri.shape
+    x_ri = x_ri.reshape(B, C * 2, H, W)
 
     return x_complex, x_ri
