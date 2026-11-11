@@ -1,5 +1,6 @@
-
+import json
 import torch
+import h5py
 from torch.utils.data import Dataset, DataLoader
 
 
@@ -57,3 +58,24 @@ def create_dataloaders(
     )
 
     return train_loader, val_loader, test_loader
+
+class LazyMRIDataset(Dataset): 
+    def __init__(self, manifest_path, split_name): 
+        with open(manifest_path, "r") as f:
+            split_manifest = json.load(f)
+
+        # Get the volume paths belonging to this split
+        volume_paths = split_manifest['train']
+        # Initialize the sample index
+        self.index = []
+        # Iterate through each volume
+        for volume_path in volume_paths:
+            with h5py.File(volume_path, "r") as f:
+                num_slices = f["kspace"].shape[0]
+                # Create one reference per slice
+                for slice_index in range (num_slices):
+                    self.index.append(volume_path, slice_index)
+    def __len__(self):
+        return len(self.y)
+    def __getitem__(self, index):
+    
