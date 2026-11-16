@@ -12,8 +12,8 @@ project_root = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(project_root))
 from preprocessing.coil_processing import fit_coil_compression, apply_coil_compression
 
-# PLEASE RUN THIS SCRIPT ONLY ONCE.
-# T2.json initially contains raw paths and will be updated to compressed paths.
+#GUYSS PLEASE RUN THIS SCRIPT ONLY ONCE
+#T2.json initially contains raw paths and will be updated to compressed paths.
 
 sequence = "T2"
 
