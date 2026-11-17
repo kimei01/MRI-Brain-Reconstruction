@@ -1,9 +1,10 @@
 import torch 
-import torch.nn as nn
-from .real_attention import MultiHeadedAttention
+import torch.nn as nn   
+from models.components.real_attention import MultiHeadedAttention
 
-class TransformerEncoderblock(nn.Module): 
+class TransformerEncoderBlock(nn.Module): 
     def __init__(self, embed_dim, num_heads,mlp_dim): 
+        super().__init__()
         #learnable matrices
         #learns parameters entering attention
         self.self_attention_norm = nn.LayerNorm(embed_dim)
@@ -29,5 +30,14 @@ class TransformerEncoderblock(nn.Module):
         ffn_output = self.ffn(ff_norm)
         x = x + ffn_output
         return x
+model = TransformerEncoderBlock(
+    embed_dim=192,
+    num_heads=6,
+    mlp_dim=768
+)
 
+x = torch.randn(4, 576, 192)
+output = model(x)
+
+print(output.shape)
        
