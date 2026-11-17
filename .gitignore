@@ -9,3 +9,4 @@ datasets/compressed/*
 reports/
 datasets/*
 __pycache__/
+checkpoints
