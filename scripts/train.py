@@ -7,6 +7,8 @@ from pathlib import Path
 
 from scripts.data_loader import LazyMRIDataset
 from models.real_vit.vit import RealVisionTransformer
+from utils.set_seed import set_seed
+from utils.experiment_logger import ExperimentLogger
 
 sequence = "T2"
 manifest_path = f"splits/{sequence}.json"
@@ -19,8 +21,14 @@ parser.add_argument("--decay_epochs", type = int, default = 30)
 parser.add_argument("--lr", type=float, default = 0.0001)
 parser.add_argument("--batch_size", type=int, default = 4)
 parser.add_argument("--model",type=str,choices=["real"], default="real")
+parser.add_argument("--seed", type=int, default=42)
 #choices=["real", "complex"] when complex vit is done
 args = parser.parse_args()
+
+#Generator 
+set_seed(args.seed)
+generator = torch.Generator()
+generator=generator.manual_seed(args.seed)
 
 checkpoint_dir = Path("checkpoints")
 checkpoint_dir.mkdir(parents=True, exist_ok=True)
@@ -31,26 +39,34 @@ train_dataset = LazyMRIDataset(manifest_path, "train")
 val_dataset = LazyMRIDataset(manifest_path, "val")
 test_dataset = LazyMRIDataset(manifest_path, "test")
 
+#Epoch training logger
+logger = ExperimentLogger(
+    f"experiments/{args.model}_vit_seed{args.seed}/training_log.csv"
+)
+
 # Create DataLoaders
 train_loader = DataLoader(
     train_dataset,
     batch_size= args.batch_size,
     shuffle=True,
-    num_workers=0
+    num_workers=0,
+    generator = generator
 )
 
 val_loader = DataLoader(
     val_dataset,
     batch_size=args.batch_size,
     shuffle=False,
-    num_workers=0
+    num_workers=0,
+    generator = generator 
 )
 
 test_loader = DataLoader(
     test_dataset,
     batch_size=args.batch_size,
     shuffle=False,
-    num_workers=0
+    num_workers=0,
+    generator = generator
 )
 
 
@@ -61,7 +77,7 @@ if args.model == "real":
 #elif args.model == "complex":
     #model = ComplexVisionTransformer().to(device)
     #input_key = "x_complex"
-def gradient_descent(model, train_loader, val_loader, input_key, num_epochs, decay_epochs, lr): 
+def gradient_descent(model, train_loader, val_loader, input_key, num_epochs, decay_epochs, lr, logger): 
     loss_fn = nn.L1Loss()
 
     optimizer = torch.optim.AdamW(
@@ -93,6 +109,7 @@ def gradient_descent(model, train_loader, val_loader, input_key, num_epochs, dec
             train_loss = total_loss / total_samples
             
         val_loss = evaluate(model, val_loader, input_key)
+        current_lr = optimizer.param_groups[0]["lr"]
         scheduler.step()
         if val_loss < best_val_loss:
             best_val_loss = val_loss 
@@ -103,6 +120,15 @@ def gradient_descent(model, train_loader, val_loader, input_key, num_epochs, dec
             "scheduler_state_dict": scheduler.state_dict(),
             "best_val_loss": best_val_loss
             }, checkpoint_path) 
+
+        metrics = {
+                    "epochs": epochs + 1,
+                    "train_loss": train_loss,
+                    "val_loss": val_loss,
+                    "learning_rate": current_lr,
+                    "best_val_loss": best_val_loss
+                }
+        logger.log_epochs(metrics)
         print(f"Current Epoch: {epochs + 1}, Train Loss: {train_loss}, Val Loss: {val_loss}")
     return best_val_loss
 
@@ -137,7 +163,8 @@ best_val_loss = gradient_descent(
     input_key,
     num_epochs=args.epochs,
     decay_epochs=args.decay_epochs,
-    lr=args.lr
+    lr=args.lr,
+    logger=logger
 )
 
 checkpoint = torch.load(
