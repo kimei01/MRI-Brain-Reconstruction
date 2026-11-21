@@ -16,6 +16,7 @@ def normalization(x, y):
         scale = scale.clamp(min=1e-8)
 
         # Scale both x and y using the same scale factor
+        #unsqueeze since scale doesn't match x dimensions 
         x = x / scale.unsqueeze(1)
         y = y / scale
 

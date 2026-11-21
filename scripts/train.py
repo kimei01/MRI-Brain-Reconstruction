@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import argparse
+import json
 from tqdm import tqdm
 from torch.utils.data import DataLoader
 from pathlib import Path
@@ -15,6 +16,7 @@ manifest_path = f"splits/{sequence}.json"
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Device: {device}")
 
+#Training Arguments 
 parser = argparse.ArgumentParser()
 parser.add_argument("--epochs", type=int, default = 5)
 parser.add_argument("--decay_epochs", type = int, default = 30)
@@ -30,19 +32,21 @@ set_seed(args.seed)
 generator = torch.Generator()
 generator=generator.manual_seed(args.seed)
 
-checkpoint_dir = Path("checkpoints")
-checkpoint_dir.mkdir(parents=True, exist_ok=True)
-checkpoint_path = checkpoint_dir / f"{args.model}_vit_best.pth"
+#Experiment Path and Checkpoint Path
+experiment_dir = Path(f"experiments/{args.model}_vit_seed{args.seed}")
+experiment_dir.mkdir(parents=True, exist_ok=True)
+checkpoint_path = experiment_dir / "vit_best.pth"
+final_checkpoint_path = experiment_dir / "final_model.pth"
+
+#Epoch training logger
+logger = ExperimentLogger(
+    experiment_dir/"training_log.csv"
+)
 
 # Initialize lazy datasets
 train_dataset = LazyMRIDataset(manifest_path, "train")
 val_dataset = LazyMRIDataset(manifest_path, "val")
 test_dataset = LazyMRIDataset(manifest_path, "test")
-
-#Epoch training logger
-logger = ExperimentLogger(
-    f"experiments/{args.model}_vit_seed{args.seed}/training_log.csv"
-)
 
 # Create DataLoaders
 train_loader = DataLoader(
@@ -77,6 +81,7 @@ if args.model == "real":
 #elif args.model == "complex":
     #model = ComplexVisionTransformer().to(device)
     #input_key = "x_complex"
+
 def gradient_descent(model, train_loader, val_loader, input_key, num_epochs, decay_epochs, lr, logger): 
     loss_fn = nn.L1Loss()
 
@@ -130,6 +135,14 @@ def gradient_descent(model, train_loader, val_loader, input_key, num_epochs, dec
                 }
         logger.log_epochs(metrics)
         print(f"Current Epoch: {epochs + 1}, Train Loss: {train_loss}, Val Loss: {val_loss}")
+    torch.save({ 
+        "epoch": epochs + 1,
+        "model_state_dict": model.state_dict(),
+        "optimizer_state_dict": optimizer.state_dict(),
+        "scheduler_state_dict": scheduler.state_dict(),
+        "final_val_loss": val_loss}
+        ,final_checkpoint_path
+    )
     return best_val_loss
 
 
@@ -155,7 +168,6 @@ def evaluate(model, loader, input_key):
 
     return total_loss / total_samples
 
-
 best_val_loss = gradient_descent(
     model,
     train_loader,
@@ -172,6 +184,18 @@ checkpoint = torch.load(
     map_location=device,
     weights_only=True
 )
+
+config = {
+        "model": args.model,
+        "seed": args.seed,
+        "epochs": args.epochs,
+        "lr": args.lr,
+        "batch_size": args.batch_size,
+        "decay_epochs": args.decay_epochs,
+    } 
+
+with open(experiment_dir/"config.json", "w") as f: 
+    json.dump(config, f, indent = 4)
 
 model.load_state_dict(checkpoint["model_state_dict"])
 
