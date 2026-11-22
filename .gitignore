@@ -1,12 +1,9 @@
 
-# Ignore all files inside the folder
-datasets/multicoil_train/*
-datasets/compressed/*
-
+datasets/
+splits/
+experiments/
 # Exception: Do not ignore the .gitkeep file inside it
 !multicoil_train/.gitkeep
 .vscode/
 reports/
-datasets/*
 __pycache__/
-checkpoints

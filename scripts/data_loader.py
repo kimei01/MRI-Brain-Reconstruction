@@ -10,7 +10,7 @@ from preprocessing.data_representation import create_representations
 
 
 class LazyMRIDataset(Dataset): 
-    def __init__(self, manifest_path, split_name): 
+    def __init__(self, manifest_path, split_name,acceleration=4): 
         with open(manifest_path, "r") as f:
             split_manifest = json.load(f)
 
@@ -25,6 +25,12 @@ class LazyMRIDataset(Dataset):
                 # Create one reference per slice
                 for slice_index in range (num_slices):
                     self.index.append((volume_path, slice_index))
+          # Create the undersampling mask once
+        self.acceleration = acceleration
+        self.mask = create_cartesian_mask(
+            768, 396, acceleration=self.acceleration
+        )
+
     def __len__(self):
         return len(self.index)
     def __getitem__(self, index):
@@ -35,9 +41,9 @@ class LazyMRIDataset(Dataset):
         with h5py.File(file_path, "r") as f:
             kspace = torch.from_numpy(f["kspace"][slice_index])
             reference = torch.from_numpy(f["reconstruction_rss"][slice_index])
-
+            
         # Apply undersampling mask
-        mask = create_cartesian_mask(768, 396, acceleration=4)
+        mask = self.mask
         num_coils = kspace.shape[0]
 
         # Apply IFFT and center crop to each coil
