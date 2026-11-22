@@ -12,11 +12,11 @@ sys.path.insert(0, str(project_root))
 from preprocessing.coil_processing import fit_coil_compression, apply_coil_compression
 
 #GUYSS PLEASE RUN THIS SCRIPT ONLY ONCE
-#T2.json initially contains raw paths and will be updated to compressed paths.
+#Reads raw paths from T2_raw.json and outputs compressed paths to T2.json.
 
 sequence = "T2"
 
-with open(f"splits/{sequence}.json", "r") as f:
+with open(f"splits/{sequence}_raw.json", "r") as f:
     split_manifest = json.load(f)
 
 compressed_manifest = {
