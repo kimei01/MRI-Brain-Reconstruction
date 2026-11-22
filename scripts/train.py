@@ -16,7 +16,7 @@ manifest_path = f"splits/{sequence}.json"
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Device: {device}")
 
-#Training Arguments 
+#Training Args
 parser = argparse.ArgumentParser()
 parser.add_argument("--epochs", type=int, default = 5)
 parser.add_argument("--decay_epochs", type = int, default = 30)
@@ -37,7 +37,18 @@ experiment_dir = Path(f"experiments/{args.model}_vit_seed{args.seed}")
 experiment_dir.mkdir(parents=True, exist_ok=True)
 checkpoint_path = experiment_dir / "vit_best.pth"
 final_checkpoint_path = experiment_dir / "final_model.pth"
+config = {
+        "model": args.model,
+        "seed": args.seed,
+        "epochs": args.epochs,
+        "lr": args.lr,
+        "batch_size": args.batch_size,
+        "decay_epochs": args.decay_epochs,
+    } 
 
+with open(experiment_dir/"config.json", "w") as f: 
+    json.dump(config, f, indent = 4)
+    
 #Epoch training logger
 logger = ExperimentLogger(
     experiment_dir/"training_log.csv"
@@ -46,7 +57,6 @@ logger = ExperimentLogger(
 # Initialize lazy datasets
 train_dataset = LazyMRIDataset(manifest_path, "train")
 val_dataset = LazyMRIDataset(manifest_path, "val")
-test_dataset = LazyMRIDataset(manifest_path, "test")
 
 # Create DataLoaders
 train_loader = DataLoader(
@@ -64,15 +74,6 @@ val_loader = DataLoader(
     num_workers=0,
     generator = generator 
 )
-
-test_loader = DataLoader(
-    test_dataset,
-    batch_size=args.batch_size,
-    shuffle=False,
-    num_workers=0,
-    generator = generator
-)
-
 
 if args.model == "real":
     model = RealVisionTransformer().to(device)
@@ -179,25 +180,4 @@ best_val_loss = gradient_descent(
     logger=logger
 )
 
-checkpoint = torch.load(
-    checkpoint_path,
-    map_location=device,
-    weights_only=True
-)
 
-config = {
-        "model": args.model,
-        "seed": args.seed,
-        "epochs": args.epochs,
-        "lr": args.lr,
-        "batch_size": args.batch_size,
-        "decay_epochs": args.decay_epochs,
-    } 
-
-with open(experiment_dir/"config.json", "w") as f: 
-    json.dump(config, f, indent = 4)
-
-model.load_state_dict(checkpoint["model_state_dict"])
-
-test_loss = evaluate(model, test_loader, input_key)
-print(f"Final Test Loss: {test_loss:.6f}")

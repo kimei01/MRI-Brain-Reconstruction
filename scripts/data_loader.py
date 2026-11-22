@@ -65,7 +65,7 @@ class LazyMRIDataset(Dataset):
         # Stack coils to form slice tensor [4, 384, 384]
         x = torch.stack(coil_tensors, dim=0)
 
-        # Apply target-derived normalization using reference RSS
+        # Apply input-derived normalization to both input and reference
         x_norm, y_norm, scale = normalization(x, reference)
 
         # Create complex [4, 384, 384] and real/imaginary [8, 384, 384] representations
