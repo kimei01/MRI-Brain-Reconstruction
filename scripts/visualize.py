@@ -1,4 +1,3 @@
-
 import os
 import sys
 from pathlib import Path
@@ -19,18 +18,22 @@ from torch.utils.data import DataLoader
 from scripts.data_loader import LazyMRIDataset
 from utils.set_seed import set_seed
 from models.real_vit.vit import RealVisionTransformer
+from models.complex_vit.vit import ComplexVisionTransformer
+from models.real_unet.unet import RealUNet
+from models.complex_unet.unet import ComplexUNet
 from utils.metrics import mae
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
-def get_slice_maes(model, loader, device):
+
+def get_slice_maes(model, loader, input_key, device):
     model.eval()
     scores = []
     scales = []
 
     with torch.no_grad():
         for batch in tqdm(loader, desc="Evaluating slices"):
-            x = batch["x_ri"].to(device)
+            x = batch[input_key].to(device)
             y = batch["y"].to(device)
             scale = batch["scale"]
 
@@ -43,18 +46,18 @@ def get_slice_maes(model, loader, device):
     return scores, scales
 
 
-def visualize_slice(model, dataset, index, output_dir, device, name):
+def visualize_slice(model, dataset, index, input_key, model_title, output_dir, device, name):
     model.eval()
 
     sample = dataset[index]
 
-    x_ri = sample["x_ri"].unsqueeze(0).to(device)
+    x = sample[input_key].unsqueeze(0).to(device)
     x_complex = sample["x_complex"]
     y = sample["y"]
     scale = sample["scale"].item()
 
     with torch.no_grad():
-        prediction = model(x_ri).squeeze(0).cpu()
+        prediction = model(x).squeeze(0).cpu()
 
     prediction = prediction * scale
     target = y * scale
@@ -77,7 +80,7 @@ def visualize_slice(model, dataset, index, output_dir, device, name):
 
     fig, axes = plt.subplots(1, 4, figsize=(16, 4))
 
-    titles = ["Zero-filled Input", "Ground Truth", "Real ViT", "Absolute Error"]
+    titles = ["Zero-filled Input", "Ground Truth", model_title, "Absolute Error"]
 
     for i in range(3):
         axes[i].imshow(images[i], cmap="gray", vmin=0, vmax=vmax)
@@ -95,36 +98,77 @@ def visualize_slice(model, dataset, index, output_dir, device, name):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model", type=str, default="real")
+    parser.add_argument("--model", type=str, choices=["real_vit", "complex_vit", "real_unet", "complex_unet"], default="real_vit")
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--checkpoint", type=str, choices=["best", "final"], default="best")
     parser.add_argument("--batch_size", type=int, default=4)
     parser.add_argument("--acceleration", type=int, choices=[4, 8], default=4)
     parser.add_argument("--num_workers", type=int, default=2)
+    parser.add_argument("--embed_dim", type=int, default=None,
+                        help="Token width. Default: 192 for real ViT, 138 for complex ViT")
+    parser.add_argument("--mlp_dim", type=int, default=None,
+                        help="Transformer MLP width. Default: 4 x embed_dim")
     args = parser.parse_args()
+
+    is_vit = "vit" in args.model
+    if is_vit:
+        if args.embed_dim is None:
+            args.embed_dim = 192 if "real" in args.model else 138
+        if args.mlp_dim is None:
+            args.mlp_dim = 4 * args.embed_dim
+    else:
+        args.embed_dim = None
+        args.mlp_dim = None
 
     set_seed(args.seed)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Device: {device}")
 
-    experiment_dir = Path(
-        f"experiments/{args.model}_vit_acc{args.acceleration}_seed{args.seed}_full"
-    )
+    if is_vit:
+        experiment_dir = Path(f"experiments/{args.model}_d{args.embed_dim}_mlp{args.mlp_dim}_acc{args.acceleration}_seed{args.seed}")
+        if not experiment_dir.exists():
+            fallback_dir = Path(f"experiments/{args.model}_acc{args.acceleration}_seed{args.seed}")
+            if fallback_dir.exists():
+                experiment_dir = fallback_dir
+    else:
+        experiment_dir = Path(f"experiments/{args.model}_acc{args.acceleration}_seed{args.seed}")
 
     config_path = experiment_dir / "config.json"
-
-    with open(config_path, "r") as f:
-        config = json.load(f)
+    if config_path.exists():
+        with open(config_path, "r") as f:
+            config = json.load(f)
 
     if args.checkpoint == "best":
-        checkpoint_path = experiment_dir / "vit_best.pth"
+        checkpoint_path = experiment_dir / "best_model.pth"
+        if not checkpoint_path.exists():
+            checkpoint_path = experiment_dir / "vit_best.pth"
     else:
         checkpoint_path = experiment_dir / "final_model.pth"
 
     checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=True)
 
-    model = RealVisionTransformer().to(device)
+    if args.model == "real_vit":
+        model = RealVisionTransformer(embed_dim=args.embed_dim, mlp_dim=args.mlp_dim).to(device)
+        input_key = "x_ri"
+    elif args.model == "complex_vit":
+        model = ComplexVisionTransformer(embed_dim=args.embed_dim, mlp_dim=args.mlp_dim).to(device)
+        input_key = "x_complex"
+    elif args.model == "real_unet":
+        model = RealUNet(in_channels=8).to(device)
+        input_key = "x_ri"
+    elif args.model == "complex_unet":
+        model = ComplexUNet(in_channels=4).to(device)
+        input_key = "x_complex"
+
+    model_titles = {
+        "real_vit": "Real ViT",
+        "complex_vit": "Complex ViT",
+        "real_unet": "Real UNet",
+        "complex_unet": "Complex UNet"
+    }
+    model_title = model_titles.get(args.model, args.model)
+
     model.load_state_dict(checkpoint["model_state_dict"])
     model.eval()
 
@@ -141,7 +185,7 @@ def main():
         num_workers=args.num_workers
     )
 
-    scores, scales = get_slice_maes(model, loader, device)
+    scores, scales = get_slice_maes(model, loader, input_key, device)
 
     ranked = np.argsort(scores)
 
@@ -206,6 +250,8 @@ def main():
             model,
             dataset,
             int(index),
+            input_key,
+            model_title,
             output_dir,
             device,
             name

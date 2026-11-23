@@ -1,3 +1,9 @@
+import sys
+from pathlib import Path
+
+project_root = Path(__file__).resolve().parent.parent
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
 
 import torch
 import argparse
@@ -5,12 +11,13 @@ import csv
 import json
 import numpy as np
 from tqdm import tqdm
-from pathlib import Path
 from torch.utils.data import DataLoader
 from scripts.data_loader import LazyMRIDataset
 from utils.set_seed import set_seed
 from models.real_vit.vit import RealVisionTransformer
 from models.complex_vit.vit import ComplexVisionTransformer
+from models.real_unet.unet import RealUNet
+from models.complex_unet.unet import ComplexUNet
 from utils.metrics import mae, nmse, psnr, ssim
 
 
@@ -21,22 +28,27 @@ def main():
     print(f"Device: {device}")
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model", type=str, choices=["real", "complex"], default="real")
+    parser.add_argument("--model", type=str, choices=["real_vit", "complex_vit", "real_unet", "complex_unet"], default="real_vit")
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--checkpoint", type=str, choices=["best", "final"], default="best")
     parser.add_argument("--batch_size", type=int, default=4)
     parser.add_argument("--acceleration", type=int, choices=[4, 8], default=4)
     parser.add_argument("--num_workers", type=int, default=2)
     parser.add_argument("--embed_dim", type=int, default=None,
-                        help="Must match training. Default: 192 for real, 138 for complex")
+                        help="Must match training. Default: 192 for real ViT, 138 for complex ViT")
     parser.add_argument("--mlp_dim", type=int, default=None,
                         help="Must match training. Default: 4 x embed_dim")
     args = parser.parse_args()
 
-    if args.embed_dim is None:
-        args.embed_dim = 192 if args.model == "real" else 138
-    if args.mlp_dim is None:
-        args.mlp_dim = 4 * args.embed_dim
+    is_vit = "vit" in args.model
+    if is_vit:
+        if args.embed_dim is None:
+            args.embed_dim = 192 if "real" in args.model else 138
+        if args.mlp_dim is None:
+            args.mlp_dim = 4 * args.embed_dim
+    else:
+        args.embed_dim = None
+        args.mlp_dim = None
 
     # Generator
     set_seed(args.seed)
@@ -44,13 +56,17 @@ def main():
     generator = generator.manual_seed(args.seed)
 
     # Experiment Path and Checkpoint Path
-    experiment_dir = Path(
-        f"experiments/{args.model}_vit_d{args.embed_dim}_mlp{args.mlp_dim}_acc{args.acceleration}_seed{args.seed}"
-    )
+    if is_vit:
+        experiment_dir = Path(f"experiments/{args.model}_d{args.embed_dim}_mlp{args.mlp_dim}_acc{args.acceleration}_seed{args.seed}")
+        if not experiment_dir.exists():
+            fallback_dir = Path(f"experiments/{args.model}_acc{args.acceleration}_seed{args.seed}")
+            if fallback_dir.exists():
+                experiment_dir = fallback_dir
+    else:
+        experiment_dir = Path(f"experiments/{args.model}_acc{args.acceleration}_seed{args.seed}")
 
     # Load experiment configuration
     config_path = experiment_dir / "config.json"
-
     with open(config_path, "r") as f:
         config = json.load(f)
 
@@ -60,15 +76,30 @@ def main():
             f"but experiment was trained with {config['acceleration']}x."
         )
 
-    for key in ["model", "embed_dim", "mlp_dim"]:
-        if config.get(key) != getattr(args, key):
-            raise ValueError(
-                f"{key} mismatch: requested {getattr(args, key)}, "
-                f"but experiment was trained with {config.get(key)}."
-            )
+    cfg_model = config.get("model")
+    model_matches = (
+        cfg_model == args.model
+        or (cfg_model == "real" and args.model == "real_vit")
+        or (cfg_model == "complex" and args.model == "complex_vit")
+    )
+    if not model_matches:
+        raise ValueError(
+            f"Model mismatch: requested {args.model}, "
+            f"but experiment was trained with {cfg_model}."
+        )
+
+    if is_vit:
+        for key in ["embed_dim", "mlp_dim"]:
+            if key in config and config.get(key) != getattr(args, key):
+                raise ValueError(
+                    f"{key} mismatch: requested {getattr(args, key)}, "
+                    f"but experiment was trained with {config.get(key)}."
+                )
 
     if args.checkpoint == "best":
-        checkpoint_path = experiment_dir / "vit_best.pth"
+        checkpoint_path = experiment_dir / "best_model.pth"
+        if not checkpoint_path.exists():
+            checkpoint_path = experiment_dir / "vit_best.pth"
     else:
         checkpoint_path = experiment_dir / "final_model.pth"
 
@@ -92,12 +123,17 @@ def main():
         weights_only=True
     )
 
-    if args.model == "real":
+    if args.model == "real_vit":
         model = RealVisionTransformer(embed_dim=args.embed_dim, mlp_dim=args.mlp_dim).to(device)
         input_key = "x_ri"
-
-    elif args.model == "complex":
+    elif args.model == "complex_vit":
         model = ComplexVisionTransformer(embed_dim=args.embed_dim, mlp_dim=args.mlp_dim).to(device)
+        input_key = "x_complex"
+    elif args.model == "real_unet":
+        model = RealUNet(in_channels=8).to(device)
+        input_key = "x_ri"
+    elif args.model == "complex_unet":
+        model = ComplexUNet(in_channels=4).to(device)
         input_key = "x_complex"
 
     model.load_state_dict(checkpoint["model_state_dict"])
@@ -137,8 +173,8 @@ def main():
 
     results = {
         "model": args.model,
-        "embed_dim": args.embed_dim,
-        "mlp_dim": args.mlp_dim,
+        "embed_dim": args.embed_dim if is_vit else None,
+        "mlp_dim": args.mlp_dim if is_vit else None,
         "seed": args.seed,
         "acceleration": args.acceleration,
         "checkpoint": args.checkpoint,
