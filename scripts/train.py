@@ -45,7 +45,7 @@ def gradient_descent(model, train_loader, val_loader, input_key, num_epochs, dec
             total_samples += batch_size
             train_loss = total_loss / total_samples
 
-        val_loss = evaluate(model, val_loader, input_key, device)
+        val_loss = validate(model, val_loader, input_key, device)
         current_lr = optimizer.param_groups[0]["lr"]
         scheduler.step()
 
@@ -80,14 +80,14 @@ def gradient_descent(model, train_loader, val_loader, input_key, num_epochs, dec
     return best_val_loss
 
 
-def evaluate(model, loader, input_key, device):
+def validate(model, loader, input_key, device):
     model.eval()
     loss_fn = nn.L1Loss()
     total_loss = 0
     total_samples = 0
 
     with torch.inference_mode():
-        for batch in tqdm(loader, desc="Evaluating"):
+        for batch in tqdm(loader, desc="Validating"):
             x = batch[input_key].to(device)
             target = batch["y"].to(device)
 
