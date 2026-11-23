@@ -35,7 +35,7 @@ def main():
 
     # Experiment Path and Checkpoint Path
     experiment_dir = Path(
-        f"experiments/{args.model}_vit_acc{args.acceleration}_seed{args.seed}"
+        f"experiments/{args.model}_vit_acc{args.acceleration}_seed{args.seed}_full"
     )
 
     # Load experiment configuration
