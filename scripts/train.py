@@ -8,6 +8,7 @@ from pathlib import Path
 
 from scripts.data_loader import LazyMRIDataset
 from models.real_vit.vit import RealVisionTransformer
+from models.complex_vit.vit import ComplexVisionTransformer
 from utils.set_seed import set_seed
 from utils.experiment_logger import ExperimentLogger
 
@@ -112,11 +113,20 @@ def main():
     parser.add_argument("--decay_epochs", type=int, default=30)
     parser.add_argument("--lr", type=float, default=0.0001)
     parser.add_argument("--batch_size", type=int, default=4)
-    parser.add_argument("--model", type=str, choices=["real"], default="real")
+    parser.add_argument("--model", type=str, choices=["real", "complex"], default="real")
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--acceleration", type=int, choices=[4, 8], default=4)
     parser.add_argument("--num_workers", type=int, default=2)
+    parser.add_argument("--embed_dim", type=int, default=None,
+                        help="Token width. Default: 192 for real, 138 for complex (parameter-matched to real)")
+    parser.add_argument("--mlp_dim", type=int, default=None,
+                        help="Transformer MLP width. Default: 4 x embed_dim")
     args = parser.parse_args()
+
+    if args.embed_dim is None:
+        args.embed_dim = 192 if args.model == "real" else 138
+    if args.mlp_dim is None:
+        args.mlp_dim = 4 * args.embed_dim
 
     # Generator
     set_seed(args.seed)
@@ -125,27 +135,11 @@ def main():
 
     # Experiment Path and Checkpoint Path
     experiment_dir = Path(
-        f"experiments/{args.model}_vit_acc{args.acceleration}_seed{args.seed}"
+        f"experiments/{args.model}_vit_d{args.embed_dim}_mlp{args.mlp_dim}_acc{args.acceleration}_seed{args.seed}"
     )
     experiment_dir.mkdir(parents=True, exist_ok=True)
     checkpoint_path = experiment_dir / "vit_best.pth"
     final_checkpoint_path = experiment_dir / "final_model.pth"
-
-    config = {
-        "model": args.model,
-        "seed": args.seed,
-        "epochs": args.epochs,
-        "lr": args.lr,
-        "batch_size": args.batch_size,
-        "decay_epochs": args.decay_epochs,
-        "acceleration": args.acceleration,
-        "center_fraction": 0.08,
-        "num_virtual_coils": 4,
-        "num_workers": args.num_workers
-    }
-
-    with open(experiment_dir / "config.json", "w") as f:
-        json.dump(config, f, indent=4)
 
     # Epoch training logger
     logger = ExperimentLogger(
@@ -176,12 +170,34 @@ def main():
     )
 
     if args.model == "real":
-        model = RealVisionTransformer().to(device)
+        model = RealVisionTransformer(embed_dim=args.embed_dim, mlp_dim=args.mlp_dim).to(device)
         input_key = "x_ri"
 
-    # elif args.model == "complex":
-    #     model = ComplexVisionTransformer().to(device)
-    #     input_key = "x_complex"
+    elif args.model == "complex":
+        model = ComplexVisionTransformer(embed_dim=args.embed_dim, mlp_dim=args.mlp_dim).to(device)
+        input_key = "x_complex"
+
+    num_parameters = sum(p.numel() for p in model.parameters())
+    print(f"Model: {args.model} ViT, embed_dim={args.embed_dim}, mlp_dim={args.mlp_dim}, parameters={num_parameters:,}")
+
+    config = {
+        "model": args.model,
+        "seed": args.seed,
+        "epochs": args.epochs,
+        "lr": args.lr,
+        "batch_size": args.batch_size,
+        "decay_epochs": args.decay_epochs,
+        "acceleration": args.acceleration,
+        "center_fraction": 0.08,
+        "num_virtual_coils": 4,
+        "num_workers": args.num_workers,
+        "embed_dim": args.embed_dim,
+        "mlp_dim": args.mlp_dim,
+        "num_parameters": num_parameters
+    }
+
+    with open(experiment_dir / "config.json", "w") as f:
+        json.dump(config, f, indent=4)
 
     best_val_loss = gradient_descent(
         model,
