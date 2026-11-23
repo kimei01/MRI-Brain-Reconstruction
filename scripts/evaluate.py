@@ -10,6 +10,7 @@ from torch.utils.data import DataLoader
 from scripts.data_loader import LazyMRIDataset
 from utils.set_seed import set_seed
 from models.real_vit.vit import RealVisionTransformer
+from models.complex_vit.vit import ComplexVisionTransformer
 from utils.metrics import mae, nmse, psnr, ssim
 
 
@@ -20,13 +21,22 @@ def main():
     print(f"Device: {device}")
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model", type=str, choices=["real"], default="real")
+    parser.add_argument("--model", type=str, choices=["real", "complex"], default="real")
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--checkpoint", type=str, choices=["best", "final"], default="best")
     parser.add_argument("--batch_size", type=int, default=4)
     parser.add_argument("--acceleration", type=int, choices=[4, 8], default=4)
     parser.add_argument("--num_workers", type=int, default=2)
+    parser.add_argument("--embed_dim", type=int, default=None,
+                        help="Must match training. Default: 192 for real, 138 for complex")
+    parser.add_argument("--mlp_dim", type=int, default=None,
+                        help="Must match training. Default: 4 x embed_dim")
     args = parser.parse_args()
+
+    if args.embed_dim is None:
+        args.embed_dim = 192 if args.model == "real" else 138
+    if args.mlp_dim is None:
+        args.mlp_dim = 4 * args.embed_dim
 
     # Generator
     set_seed(args.seed)
@@ -35,7 +45,7 @@ def main():
 
     # Experiment Path and Checkpoint Path
     experiment_dir = Path(
-        f"experiments/{args.model}_vit_acc{args.acceleration}_seed{args.seed}_full"
+        f"experiments/{args.model}_vit_d{args.embed_dim}_mlp{args.mlp_dim}_acc{args.acceleration}_seed{args.seed}"
     )
 
     # Load experiment configuration
@@ -49,6 +59,13 @@ def main():
             f"Acceleration mismatch: requested {args.acceleration}x, "
             f"but experiment was trained with {config['acceleration']}x."
         )
+
+    for key in ["model", "embed_dim", "mlp_dim"]:
+        if config.get(key) != getattr(args, key):
+            raise ValueError(
+                f"{key} mismatch: requested {getattr(args, key)}, "
+                f"but experiment was trained with {config.get(key)}."
+            )
 
     if args.checkpoint == "best":
         checkpoint_path = experiment_dir / "vit_best.pth"
@@ -76,8 +93,12 @@ def main():
     )
 
     if args.model == "real":
-        model = RealVisionTransformer().to(device)
+        model = RealVisionTransformer(embed_dim=args.embed_dim, mlp_dim=args.mlp_dim).to(device)
         input_key = "x_ri"
+
+    elif args.model == "complex":
+        model = ComplexVisionTransformer(embed_dim=args.embed_dim, mlp_dim=args.mlp_dim).to(device)
+        input_key = "x_complex"
 
     model.load_state_dict(checkpoint["model_state_dict"])
     model.eval()
@@ -116,6 +137,8 @@ def main():
 
     results = {
         "model": args.model,
+        "embed_dim": args.embed_dim,
+        "mlp_dim": args.mlp_dim,
         "seed": args.seed,
         "acceleration": args.acceleration,
         "checkpoint": args.checkpoint,
