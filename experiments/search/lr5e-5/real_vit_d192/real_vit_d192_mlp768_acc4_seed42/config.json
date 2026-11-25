@@ -1,0 +1,15 @@
+{
+    "model": "real_vit",
+    "seed": 42,
+    "epochs": 30,
+    "lr": 5e-05,
+    "batch_size": 4,
+    "decay_epochs": 30,
+    "acceleration": 4,
+    "center_fraction": 0.08,
+    "num_virtual_coils": 4,
+    "num_workers": 8,
+    "embed_dim": 192,
+    "mlp_dim": 768,
+    "num_parameters": 3222976
+}

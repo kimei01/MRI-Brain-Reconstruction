@@ -1,0 +1,15 @@
+{
+    "model": "complex_vit",
+    "seed": 123,
+    "epochs": 30,
+    "lr": 0.0001,
+    "batch_size": 4,
+    "decay_epochs": 30,
+    "acceleration": 4,
+    "center_fraction": 0.08,
+    "num_virtual_coils": 4,
+    "num_workers": 8,
+    "embed_dim": 138,
+    "mlp_dim": 552,
+    "num_parameters": 3277460
+}
