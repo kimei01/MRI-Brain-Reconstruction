@@ -1,0 +1,73 @@
+[2026-11-25 11:50:36] TRIAL seed7_default real_vit_d192 train start
+[2026-11-25 12:09:35] TRIAL seed7_default real_vit_d192 train exit 0
+[2026-11-25 12:09:35] TRIAL seed7_default real_vit_d192 eval start
+[2026-11-25 12:09:46] TRIAL seed7_default real_vit_d192 eval exit 0
+[2026-11-25 12:09:46] TRIAL seed7_default complex_vit_d138 train start
+[2026-11-25 12:32:46] TRIAL seed7_default complex_vit_d138 train exit 0
+[2026-11-25 12:32:46] TRIAL seed7_default complex_vit_d138 eval start
+[2026-11-25 12:32:56] TRIAL seed7_default complex_vit_d138 eval exit 0
+[2026-11-25 12:32:56] TRIAL seed7_default complex_vit_d192 train start
+[2026-11-25 12:59:52] TRIAL seed7_default complex_vit_d192 train exit 0
+[2026-11-25 12:59:52] TRIAL seed7_default complex_vit_d192 eval start
+[2026-11-25 13:00:00] TRIAL seed7_default complex_vit_d192 eval exit 0
+[2026-11-25 13:00:00] TRIAL seed123_default real_vit_d192 train start
+[2026-11-25 13:19:00] TRIAL seed123_default real_vit_d192 train exit 0
+[2026-11-25 13:19:00] TRIAL seed123_default real_vit_d192 eval start
+[2026-11-25 13:19:11] TRIAL seed123_default real_vit_d192 eval exit 0
+[2026-11-25 13:19:11] TRIAL seed123_default complex_vit_d138 train start
+[2026-11-25 13:42:44] TRIAL seed123_default complex_vit_d138 train exit 0
+[2026-11-25 13:42:44] TRIAL seed123_default complex_vit_d138 eval start
+[2026-11-25 13:42:52] TRIAL seed123_default complex_vit_d138 eval exit 0
+[2026-11-25 13:42:52] TRIAL seed123_default complex_vit_d192 train start
+[2026-11-25 14:10:12] TRIAL seed123_default complex_vit_d192 train exit 0
+[2026-11-25 14:10:12] TRIAL seed123_default complex_vit_d192 eval start
+[2026-11-25 14:10:20] TRIAL seed123_default complex_vit_d192 eval exit 0
+[2026-11-25 14:10:20] TRIAL lr5e-5 real_vit_d192 train start
+[2026-11-25 14:29:17] TRIAL lr5e-5 real_vit_d192 train exit 0
+[2026-11-25 14:29:17] TRIAL lr5e-5 real_vit_d192 eval start
+[2026-11-25 14:29:28] TRIAL lr5e-5 real_vit_d192 eval exit 0
+[2026-11-25 14:29:28] TRIAL lr5e-5 complex_vit_d138 train start
+[2026-11-25 14:51:52] TRIAL lr5e-5 complex_vit_d138 train exit 0
+[2026-11-25 14:51:52] TRIAL lr5e-5 complex_vit_d138 eval start
+[2026-11-25 14:52:02] TRIAL lr5e-5 complex_vit_d138 eval exit 0
+[2026-11-25 14:52:02] TRIAL lr5e-5 complex_vit_d192 train start
+[2026-11-25 15:19:08] TRIAL lr5e-5 complex_vit_d192 train exit 0
+[2026-11-25 15:19:08] TRIAL lr5e-5 complex_vit_d192 eval start
+[2026-11-25 15:19:17] TRIAL lr5e-5 complex_vit_d192 eval exit 0
+[2026-11-25 15:19:17] TRIAL lr3e-4 real_vit_d192 train start
+[2026-11-25 15:38:10] TRIAL lr3e-4 real_vit_d192 train exit 0
+[2026-11-25 15:38:10] TRIAL lr3e-4 real_vit_d192 eval start
+[2026-11-25 15:38:21] TRIAL lr3e-4 real_vit_d192 eval exit 0
+[2026-11-25 15:38:21] TRIAL lr3e-4 complex_vit_d138 train start
+[2026-11-25 16:00:00] TRIAL lr3e-4 complex_vit_d138 train exit 0
+[2026-11-25 16:00:00] TRIAL lr3e-4 complex_vit_d138 eval start
+[2026-11-25 16:00:08] TRIAL lr3e-4 complex_vit_d138 eval exit 0
+[2026-11-25 16:00:08] TRIAL lr3e-4 complex_vit_d192 train start
+[2026-11-25 16:26:08] TRIAL lr3e-4 complex_vit_d192 train exit 0
+[2026-11-25 16:26:08] TRIAL lr3e-4 complex_vit_d192 eval start
+[2026-11-25 16:26:17] TRIAL lr3e-4 complex_vit_d192 eval exit 0
+[2026-11-25 16:26:17] TRIAL bs8 real_vit_d192 train start
+[2026-11-25 16:44:58] TRIAL bs8 real_vit_d192 train exit 0
+[2026-11-25 16:44:58] TRIAL bs8 real_vit_d192 eval start
+[2026-11-25 16:45:08] TRIAL bs8 real_vit_d192 eval exit 0
+[2026-11-25 16:45:08] TRIAL bs8 complex_vit_d138 train start
+[2026-11-25 17:04:19] TRIAL bs8 complex_vit_d138 train exit 0
+[2026-11-25 17:04:19] TRIAL bs8 complex_vit_d138 eval start
+[2026-11-25 17:04:28] TRIAL bs8 complex_vit_d138 eval exit 0
+[2026-11-25 17:04:28] TRIAL bs8 complex_vit_d192 train start
+[2026-11-25 17:29:19] TRIAL bs8 complex_vit_d192 train exit 0
+[2026-11-25 17:29:19] TRIAL bs8 complex_vit_d192 eval start
+[2026-11-25 17:29:28] TRIAL bs8 complex_vit_d192 eval exit 0
+[2026-11-25 17:29:28] TRIAL bs2 real_vit_d192 train start
+[2026-11-25 17:49:36] TRIAL bs2 real_vit_d192 train exit 0
+[2026-11-25 17:49:36] TRIAL bs2 real_vit_d192 eval start
+[2026-11-25 17:49:46] TRIAL bs2 real_vit_d192 eval exit 0
+[2026-11-25 17:49:46] TRIAL bs2 complex_vit_d138 train start
+[2026-11-25 18:15:21] TRIAL bs2 complex_vit_d138 train exit 0
+[2026-11-25 18:15:21] TRIAL bs2 complex_vit_d138 eval start
+[2026-11-25 18:15:29] TRIAL bs2 complex_vit_d138 eval exit 0
+[2026-11-25 18:15:29] TRIAL bs2 complex_vit_d192 train start
+[2026-11-25 18:46:49] TRIAL bs2 complex_vit_d192 train exit 0
+[2026-11-25 18:46:49] TRIAL bs2 complex_vit_d192 eval start
+[2026-11-25 18:46:57] TRIAL bs2 complex_vit_d192 eval exit 0
+[2026-11-25 18:46:57] SEARCH_DONE
