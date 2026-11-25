@@ -1,0 +1,2 @@
+model,embed_dim,mlp_dim,seed,acceleration,checkpoint,epoch,test_slices,MAE,NMSE,PSNR,SSIM
+complex_vit,138,552,42,4,best,30,410,1.1781008310008917e-05,0.04843645563303697,27.75147533416748,0.7975324605200251
